@@ -7,7 +7,22 @@ from tkinter import ttk, messagebox
 
 # ==========================================
 # [Pertemuan 6: Pewarisan Sifat (Inheritance)]
-# Class FormMahasiswaFrame mewarisi properti dan method dari tk.Frame
+# Class DashboardFrame mewarisi properti dari tk.Frame
+# ==========================================
+class DashboardFrame(tk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.config(bg="#f4f6f9")
+        
+        label_judul = tk.Label(self, text="Sistem Manajemen Mahasiswa (SIAKAD)", font=("Arial", 18, "bold"), bg="#f4f6f9", fg="#333")
+        label_judul.pack(pady=40)
+        
+        label_sub = tk.Label(self, text="Selamat Datang di Aplikasi Manajemen Data Mahasiswa\nGunakan Menu Bar di atas untuk menavigasi aplikasi.", font=("Arial", 12), bg="#f4f6f9", justify="center")
+        label_sub.pack(pady=10)
+
+# ==========================================
+# [Pertemuan 6: Pewarisan Sifat (Inheritance)]
+# Class FormMahasiswaFrame mewarisi properti dari tk.Frame
 # ==========================================
 class FormMahasiswaFrame(tk.Frame):
     def __init__(self, parent):
@@ -20,8 +35,8 @@ class FormMahasiswaFrame(tk.Frame):
         # ==================== JUDUL ====================
         label_judul = tk.Label(
             self,
-            text="Sistem Manajemen Mahasiswa (SIAKAD)",
-            font=("Times New Roman", 20, "bold"),
+            text="Form Manajemen Mahasiswa",
+            font=("Times New Roman", 18, "bold"),
             bg="#f0f0f0",
             fg="#8B0000"  # Dark red / maroon
         )
@@ -163,7 +178,39 @@ class MainView(tk.Tk):
         self.title("SIAKAD - Sistem Manajemen Mahasiswa")
         self.geometry("900x600")
         self.minsize(800, 550)
-        self.config(bg="#f0f0f0")
+        
+        # Container untuk menumpuk frame (Frame Switching)
+        self.container = tk.Frame(self)
+        self.container.pack(fill="both", expand=True)
+        self.container.grid_rowconfigure(0, weight=1)
+        self.container.grid_columnconfigure(0, weight=1)
+        
+        self.frames = {}
+        for F in (DashboardFrame, FormMahasiswaFrame):
+            frame = F(self.container)
+            self.frames[F.__name__] = frame
+            frame.grid(row=0, column=0, sticky="nsew") # Stack frame di koordinat grid yang sama
 
-        self.form_frame = FormMahasiswaFrame(self)
-        self.form_frame.pack(fill="both", expand=True)
+        self.create_menu()
+
+    def create_menu(self):
+        menubar = tk.Menu(self)
+        
+        menu_file = tk.Menu(menubar, tearoff=0)
+        menu_file.add_command(label="Keluar", command=self.quit)
+        menubar.add_cascade(label="File", menu=menu_file)
+        
+        menu_nav = tk.Menu(menubar, tearoff=0)
+        menu_nav.add_command(label="Dashboard", command=lambda: self.show_frame("DashboardFrame"))
+        menu_nav.add_command(label="Kelola Data Mahasiswa", command=lambda: self.show_frame("FormMahasiswaFrame"))
+        menubar.add_cascade(label="Navigasi", menu=menu_nav)
+
+        menu_bantuan = tk.Menu(menubar, tearoff=0)
+        menu_bantuan.add_command(label="Info Aplikasi", command=lambda: messagebox.showinfo("Info", "SIAKAD Mini v1.0\nMenggunakan teknik Frame Switching."))
+        menubar.add_cascade(label="Bantuan", menu=menu_bantuan)
+
+        self.config(menu=menubar)
+
+    def show_frame(self, page_name):
+        frame = self.frames[page_name]
+        frame.tkraise() # Teknik Frame Switching memunculkan frame ke atas

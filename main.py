@@ -13,10 +13,14 @@ class Controller:
     def __init__(self, model: DatabaseModel, view: MainView):
         self.model = model
         self.view = view
-        self.form_view = self.view.form_frame
+        # Mengakses frame form melalui dictionary frames karena menggunakan Frame Switching
+        self.form_view = self.view.frames["FormMahasiswaFrame"]
 
         self.bind_events()
         self.load_data()
+        
+        # Tampilkan dashboard pertama kali
+        self.view.show_frame("DashboardFrame")
 
     # ==========================================
     # [Pertemuan 13: Event Handling GUI & Integrasi Database]
