@@ -301,7 +301,7 @@ class MainView(tk.Tk):
 
     def create_menu(self):
         menu_file = tk.Menu(self.menubar, tearoff=0)
-        menu_file.add_command(label="Logout", command=self.trigger_logout)
+        menu_file.add_command(label="Logout", command=lambda: self.trigger_logout())
         menu_file.add_command(label="Keluar", command=self.quit)
         self.menubar.add_cascade(label="File", menu=menu_file)
         
