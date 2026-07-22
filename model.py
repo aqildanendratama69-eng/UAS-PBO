@@ -48,6 +48,22 @@ class Mahasiswa(Person):
     def get_role(self):
         return "Mahasiswa Aktif"
 
+class MataKuliah:
+    """Model untuk data Mata Kuliah"""
+    def __init__(self, kode_mk, nama_mk, sks):
+        self.kode_mk = kode_mk
+        self.nama_mk = nama_mk
+        self.sks = sks
+
+class KRSItem:
+    """Model untuk satu item mata kuliah di KRS Mahasiswa"""
+    def __init__(self, id_krs, nim, kode_mk, nama_mk, sks):
+        self.id_krs = id_krs
+        self.nim = nim
+        self.kode_mk = kode_mk
+        self.nama_mk = nama_mk
+        self.sks = sks
+
 # ==========================================
 # [Pertemuan 11: Integrasi OOP dan Basis Data Relasional (CRUD dengan SQLite)]
 # ==========================================
@@ -56,6 +72,7 @@ class DatabaseModel:
     def __init__(self, db_name="siakad.db"):
         self.db_name = db_name
         self.create_table()
+        self.insert_mata_kuliah_default() # Isi otomatis data matkul
 
     def get_connection(self):
         return sqlite3.connect(self.db_name)
@@ -63,6 +80,7 @@ class DatabaseModel:
     def create_table(self):
         with self.get_connection() as conn:
             cursor = conn.cursor()
+            # Tabel Mahasiswa
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS mahasiswa (
                     nim TEXT PRIMARY KEY,
@@ -71,14 +89,62 @@ class DatabaseModel:
                     tahun TEXT
                 )
             """)
+            # Tabel Mata Kuliah
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS mata_kuliah (
+                    kode_mk TEXT PRIMARY KEY,
+                    nama_mk TEXT NOT NULL,
+                    sks INTEGER NOT NULL
+                )
+            """)
+            # Tabel KRS (Relasi Many-to-Many antara Mahasiswa dan Mata Kuliah)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS krs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    nim TEXT NOT NULL,
+                    kode_mk TEXT NOT NULL,
+                    FOREIGN KEY(nim) REFERENCES mahasiswa(nim) ON DELETE CASCADE,
+                    FOREIGN KEY(kode_mk) REFERENCES mata_kuliah(kode_mk) ON DELETE CASCADE
+                )
+            """)
             conn.commit()
 
+    def insert_mata_kuliah_default(self):
+        """Memasukkan data default mata kuliah agar tabel tidak kosong"""
+        matkul_default = [
+            ("MK001", "Pemrograman Berorientasi Objek", 3),
+            ("MK002", "Basis Data", 3),
+            ("MK003", "Struktur Data", 3),
+            ("MK004", "Algoritma Pemrograman", 4),
+            ("MK005", "Jaringan Komputer", 3),
+            ("MK006", "Sistem Operasi", 3),
+            ("MK007", "Kecerdasan Buatan", 3),
+            ("MK008", "Matematika Diskrit", 2),
+        ]
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            for mk in matkul_default:
+                cursor.execute("INSERT OR IGNORE INTO mata_kuliah VALUES (?, ?, ?)", mk)
+            conn.commit()
+
+    # ==========================================
+    # FUNGSI CRUD MAHASISWA
+    # ==========================================
     def get_all_mahasiswa(self):
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM mahasiswa")
             rows = cursor.fetchall()
             return [Mahasiswa(row[0], row[1], row[2], row[3]) for row in rows]
+
+    def get_mahasiswa_by_nim(self, nim):
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM mahasiswa WHERE nim=?", (nim,))
+            row = cursor.fetchone()
+            if row:
+                return Mahasiswa(row[0], row[1], row[2], row[3])
+            return None
 
     def insert_mahasiswa(self, mhs: Mahasiswa):
         with self.get_connection() as conn:
@@ -97,6 +163,8 @@ class DatabaseModel:
     def delete_mahasiswa(self, nim):
         with self.get_connection() as conn:
             cursor = conn.cursor()
+            # Aktifkan pragma foreign_keys agar data krs yang berelasi ikut terhapus
+            cursor.execute("PRAGMA foreign_keys = ON")
             cursor.execute("DELETE FROM mahasiswa WHERE nim=?", (nim,))
             conn.commit()
 
@@ -109,3 +177,62 @@ class DatabaseModel:
             )
             rows = cursor.fetchall()
             return [Mahasiswa(row[0], row[1], row[2], row[3]) for row in rows]
+
+    # ==========================================
+    # FUNGSI KRS & MATA KULIAH
+    # ==========================================
+    def get_all_mata_kuliah(self):
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM mata_kuliah")
+            rows = cursor.fetchall()
+            return [MataKuliah(*row) for row in rows]
+
+    def insert_mata_kuliah(self, mk: MataKuliah):
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO mata_kuliah VALUES (?, ?, ?)", (mk.kode_mk, mk.nama_mk, mk.sks))
+            conn.commit()
+
+    def update_mata_kuliah(self, mk: MataKuliah):
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE mata_kuliah SET nama_mk=?, sks=? WHERE kode_mk=?", (mk.nama_mk, mk.sks, mk.kode_mk))
+            conn.commit()
+
+    def delete_mata_kuliah(self, kode_mk):
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA foreign_keys = ON") # Agar KRS terkait ikut terhapus
+            cursor.execute("DELETE FROM mata_kuliah WHERE kode_mk=?", (kode_mk,))
+            conn.commit()
+
+    def get_krs_by_nim(self, nim):
+        """Mengambil data KRS yang direlasikan dengan tabel mata kuliah"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT k.id, k.nim, m.kode_mk, m.nama_mk, m.sks 
+                FROM krs k
+                JOIN mata_kuliah m ON k.kode_mk = m.kode_mk
+                WHERE k.nim = ?
+            """, (nim,))
+            rows = cursor.fetchall()
+            return [KRSItem(*row) for row in rows]
+
+    def add_krs_item(self, nim, kode_mk):
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            # Cek duplikasi agar tidak mengambil matkul yang sama dua kali
+            cursor.execute("SELECT id FROM krs WHERE nim=? AND kode_mk=?", (nim, kode_mk))
+            if cursor.fetchone():
+                raise sqlite3.IntegrityError("Mata kuliah sudah diambil!")
+                
+            cursor.execute("INSERT INTO krs (nim, kode_mk) VALUES (?, ?)", (nim, kode_mk))
+            conn.commit()
+
+    def delete_krs_item(self, id_krs):
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM krs WHERE id=?", (id_krs,))
+            conn.commit()
