@@ -73,6 +73,7 @@ class DatabaseModel:
         self.db_name = db_name
         self.create_table()
         self.insert_mata_kuliah_default() # Isi otomatis data matkul
+        self.insert_admin_default() # Isi otomatis akun admin
 
     def get_connection(self):
         return sqlite3.connect(self.db_name)
@@ -107,7 +108,33 @@ class DatabaseModel:
                     FOREIGN KEY(kode_mk) REFERENCES mata_kuliah(kode_mk) ON DELETE CASCADE
                 )
             """)
+            # Tabel Users (Untuk Login Sistem)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE NOT NULL,
+                    password TEXT NOT NULL,
+                    role TEXT NOT NULL
+                )
+            """)
             conn.commit()
+
+    def insert_admin_default(self):
+        """Membuat akun admin rahasia secara otomatis"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)", ("admin", "admin123", "Admin"))
+            conn.commit()
+
+    def verify_login(self, username, password):
+        """Mengecek apakah username dan password cocok di database"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT role FROM users WHERE username=? AND password=?", (username, password))
+            row = cursor.fetchone()
+            if row:
+                return True, row[0]
+            return False, None
 
     def insert_mata_kuliah_default(self):
         """Memasukkan data default mata kuliah agar tabel tidak kosong"""

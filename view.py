@@ -5,6 +5,35 @@ from tkinter import ttk, messagebox
 # [Pertemuan 12: Pengantar GUI Python (Tkinter): Window, Widget & Layout]
 # ==========================================
 
+class LoginFrame(tk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.config(bg="#f4f6f9")
+        self.setup_ui()
+
+    def setup_ui(self):
+        # Container agar form ke tengah
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(2, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(2, weight=1)
+
+        frame_login = tk.Frame(self, bg="white", padx=40, pady=30, relief="raised", bd=2)
+        frame_login.grid(row=1, column=1)
+
+        tk.Label(frame_login, text="SIAKAD LOGIN", font=("Arial", 20, "bold"), bg="white", fg="#003366").pack(pady=(0, 20))
+        
+        tk.Label(frame_login, text="Username", font=("Arial", 10, "bold"), bg="white").pack(anchor="w")
+        self.ent_username = ttk.Entry(frame_login, font=("Arial", 12), width=25)
+        self.ent_username.pack(pady=(0, 15), ipady=5)
+        
+        tk.Label(frame_login, text="Password", font=("Arial", 10, "bold"), bg="white").pack(anchor="w")
+        self.ent_password = ttk.Entry(frame_login, font=("Arial", 12), width=25, show="*")
+        self.ent_password.pack(pady=(0, 20), ipady=5)
+        
+        self.btn_login = tk.Button(frame_login, text="MASUK", bg="#003366", fg="white", font=("Arial", 12, "bold"), cursor="hand2")
+        self.btn_login.pack(fill="x", ipady=5)
+
 class DashboardFrame(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
@@ -84,6 +113,8 @@ class FormMahasiswaFrame(tk.Frame):
 
         columns = ("nim", "nama", "jurusan", "tahun")
         self.tree = ttk.Treeview(frame_tabel, columns=columns, show="headings")
+        self.tree.tag_configure('oddrow', background="white")
+        self.tree.tag_configure('evenrow', background="#f4f6f9")
         self.tree.heading("nim", text="NIM")
         self.tree.heading("nama", text="NAMA")
         self.tree.heading("jurusan", text="JURUSAN")
@@ -159,6 +190,8 @@ class FormKRSFrame(tk.Frame):
 
         # Tabel MK Tersedia (Kiri)
         self.tree_mk = ttk.Treeview(frame_tabel_krs, columns=("kode", "nama", "sks"), show="headings")
+        self.tree_mk.tag_configure('oddrow', background="white")
+        self.tree_mk.tag_configure('evenrow', background="#f4f6f9")
         self.tree_mk.heading("kode", text="KODE MK")
         self.tree_mk.heading("nama", text="NAMA MATA KULIAH")
         self.tree_mk.heading("sks", text="SKS")
@@ -169,6 +202,8 @@ class FormKRSFrame(tk.Frame):
 
         # Tabel KRS Mahasiswa (Kanan)
         self.tree_krs = ttk.Treeview(frame_tabel_krs, columns=("id", "kode", "nama", "sks"), show="headings")
+        self.tree_krs.tag_configure('oddrow', background="white")
+        self.tree_krs.tag_configure('evenrow', background="#f4f6f9")
         self.tree_krs.heading("id", text="ID")
         self.tree_krs.heading("kode", text="KODE")
         self.tree_krs.heading("nama", text="NAMA MATA KULIAH")
@@ -236,8 +271,10 @@ class MainView(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("SIAKAD - Sistem Manajemen Mahasiswa")
-        self.geometry("900x600")
-        self.minsize(800, 550)
+        self.geometry("900x650")
+        self.minsize(850, 600)
+        
+        self.setup_styles()
         
         self.container = tk.Frame(self)
         self.container.pack(fill="both", expand=True)
@@ -245,31 +282,48 @@ class MainView(tk.Tk):
         self.container.grid_columnconfigure(0, weight=1)
         
         self.frames = {}
-        for F in (DashboardFrame, FormMahasiswaFrame, FormKRSFrame):
+        for F in (LoginFrame, DashboardFrame, FormMahasiswaFrame, FormKRSFrame):
             frame = F(self.container)
             self.frames[F.__name__] = frame
             frame.grid(row=0, column=0, sticky="nsew")
 
+        self.menubar = tk.Menu(self)
         self.create_menu()
+        self.config(menu=self.menubar)
+        
+    def setup_styles(self):
+        style = ttk.Style()
+        style.theme_use("clam")
+        
+        style.configure("Treeview.Heading", font=("Arial", 10, "bold"), background="#d9e1f2", foreground="#003366")
+        style.configure("Treeview", font=("Arial", 10), rowheight=30)
+        style.map("Treeview", background=[('selected', '#0078D7')], foreground=[('selected', 'white')])
 
     def create_menu(self):
-        menubar = tk.Menu(self)
-        
-        menu_file = tk.Menu(menubar, tearoff=0)
+        menu_file = tk.Menu(self.menubar, tearoff=0)
+        menu_file.add_command(label="Logout", command=self.trigger_logout)
         menu_file.add_command(label="Keluar", command=self.quit)
-        menubar.add_cascade(label="File", menu=menu_file)
+        self.menubar.add_cascade(label="File", menu=menu_file)
         
-        menu_nav = tk.Menu(menubar, tearoff=0)
+        menu_nav = tk.Menu(self.menubar, tearoff=0)
         menu_nav.add_command(label="Dashboard", command=lambda: self.show_frame("DashboardFrame"))
         menu_nav.add_command(label="Kelola Data Mahasiswa", command=lambda: self.show_frame("FormMahasiswaFrame"))
         menu_nav.add_command(label="Pengisian KRS", command=lambda: self.show_frame("FormKRSFrame"))
-        menubar.add_cascade(label="Navigasi", menu=menu_nav)
+        self.menubar.add_cascade(label="Navigasi", menu=menu_nav)
 
-        menu_bantuan = tk.Menu(menubar, tearoff=0)
-        menu_bantuan.add_command(label="Info Aplikasi", command=lambda: messagebox.showinfo("Info", "SIAKAD Mini v1.0\nPenambahan Fitur KRS."))
-        menubar.add_cascade(label="Bantuan", menu=menu_bantuan)
+        menu_bantuan = tk.Menu(self.menubar, tearoff=0)
+        menu_bantuan.add_command(label="Info Aplikasi", command=lambda: messagebox.showinfo("Info", "SIAKAD v2.0\nPenambahan Fitur Login & Estetika."))
+        self.menubar.add_cascade(label="Bantuan", menu=menu_bantuan)
 
-        self.config(menu=menubar)
+    def trigger_logout(self):
+        # Akan dioverride oleh controller
+        pass
+
+    def show_menu(self, show=True):
+        if show:
+            self.config(menu=self.menubar)
+        else:
+            self.config(menu="")
 
     def show_frame(self, page_name):
         frame = self.frames[page_name]

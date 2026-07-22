@@ -9,16 +9,24 @@ class Controller:
         self.model = model
         self.view = view
         
+        self.login_view = self.view.frames["LoginFrame"]
         self.form_view = self.view.frames["FormMahasiswaFrame"]
         self.krs_view = self.view.frames["FormKRSFrame"] # Bind frame KRS
+        
+        self.view.trigger_logout = self.logout
 
         self.bind_events()
         self.load_data()
         self.load_mata_kuliah() # Muat tabel kiri KRS
         
-        self.view.show_frame("DashboardFrame")
+        self.view.show_menu(False)
+        self.view.show_frame("LoginFrame")
 
     def bind_events(self):
+        # Event Login
+        self.login_view.btn_login.config(command=self.proses_login)
+        self.login_view.ent_password.bind("<Return>", lambda e: self.proses_login())
+
         # Event Halaman Mahasiswa
         self.form_view.btn_simpan.config(command=self.create_data)
         self.form_view.btn_update.config(command=self.update_data)
@@ -50,10 +58,11 @@ class Controller:
             self.form_view.tree.delete(item)
         try:
             mahasiswa_list = self.model.get_all_mahasiswa()
-            for mhs in mahasiswa_list:
+            for index, mhs in enumerate(mahasiswa_list):
+                tag = "evenrow" if index % 2 == 0 else "oddrow"
                 self.form_view.tree.insert("", tk.END, values=(
                     mhs.get_nim(), mhs.get_nama(), mhs.get_jurusan(), mhs.get_tahun()
-                ))
+                ), tags=(tag,))
         except Exception as e:
             messagebox.showerror("Error", f"Gagal memuat data database: {e}")
 
@@ -67,8 +76,9 @@ class Controller:
         try:
             results = self.model.search_mahasiswa(keyword)
             if results:
-                for mhs in results:
-                    self.form_view.tree.insert("", tk.END, values=(mhs.get_nim(), mhs.get_nama(), mhs.get_jurusan(), mhs.get_tahun()))
+                for index, mhs in enumerate(results):
+                    tag = "evenrow" if index % 2 == 0 else "oddrow"
+                    self.form_view.tree.insert("", tk.END, values=(mhs.get_nim(), mhs.get_nama(), mhs.get_jurusan(), mhs.get_tahun()), tags=(tag,))
             else:
                 messagebox.showinfo("Info", f"Data dengan kata kunci '{keyword}' tidak ditemukan.")
         except Exception as e:
@@ -161,8 +171,9 @@ class Controller:
             self.krs_view.tree_mk.delete(item)
         
         matkul_list = self.model.get_all_mata_kuliah()
-        for mk in matkul_list:
-            self.krs_view.tree_mk.insert("", tk.END, values=(mk.kode_mk, mk.nama_mk, mk.sks))
+        for index, mk in enumerate(matkul_list):
+            tag = "evenrow" if index % 2 == 0 else "oddrow"
+            self.krs_view.tree_mk.insert("", tk.END, values=(mk.kode_mk, mk.nama_mk, mk.sks), tags=(tag,))
 
     def cek_mahasiswa_krs(self):
         """Mengecek apakah NIM valid, jika valid muat data KRS-nya"""
@@ -191,8 +202,9 @@ class Controller:
         krs_list = self.model.get_krs_by_nim(nim)
         total_sks = 0
         
-        for krs in krs_list:
-            self.krs_view.tree_krs.insert("", tk.END, values=(krs.id_krs, krs.kode_mk, krs.nama_mk, krs.sks))
+        for index, krs in enumerate(krs_list):
+            tag = "evenrow" if index % 2 == 0 else "oddrow"
+            self.krs_view.tree_krs.insert("", tk.END, values=(krs.id_krs, krs.kode_mk, krs.nama_mk, krs.sks), tags=(tag,))
             total_sks += krs.sks
             
         self.krs_view.lbl_sks.config(text=f"Total SKS: {total_sks}")
@@ -309,6 +321,32 @@ class Controller:
                 messagebox.showinfo("Sukses", "Mata kuliah berhasil dihapus!")
             except Exception as e:
                 messagebox.showerror("Error", f"Gagal menghapus MK: {e}")
+
+    # ==========================================
+    # LOGIKA AUTHENTIKASI & APLIKASI
+    # ==========================================
+    def proses_login(self):
+        username = self.login_view.ent_username.get().strip()
+        password = self.login_view.ent_password.get().strip()
+        
+        if not username or not password:
+            messagebox.showwarning("Peringatan", "Username dan Password harus diisi!")
+            return
+            
+        is_valid, role = self.model.verify_login(username, password)
+        if is_valid:
+            messagebox.showinfo("Sukses", f"Selamat datang, {role}!")
+            self.login_view.ent_username.delete(0, tk.END)
+            self.login_view.ent_password.delete(0, tk.END)
+            self.view.show_menu(True)
+            self.view.show_frame("DashboardFrame")
+        else:
+            messagebox.showerror("Gagal", "Username atau Password salah!")
+
+    def logout(self):
+        if messagebox.askyesno("Logout", "Apakah Anda yakin ingin keluar?"):
+            self.view.show_menu(False)
+            self.view.show_frame("LoginFrame")
 
 if __name__ == "__main__":
     db = DatabaseModel()
