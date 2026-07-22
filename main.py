@@ -10,6 +10,7 @@ class Controller:
         self.view = view
         
         self.login_view = self.view.frames["LoginFrame"]
+        self.dashboard_view = self.view.frames["DashboardFrame"]
         self.form_view = self.view.frames["FormMahasiswaFrame"]
         self.krs_view = self.view.frames["FormKRSFrame"] # Bind frame KRS
         
@@ -335,6 +336,10 @@ class Controller:
             
         is_valid, role = self.model.verify_login(username, password)
         if is_valid:
+            # Update statistik dashboard sebelum menampilkannya
+            total_mhs, total_mk, total_krs = self.model.get_dashboard_stats()
+            self.dashboard_view.update_stats(role, total_mhs, total_mk, total_krs)
+            
             messagebox.showinfo("Sukses", f"Selamat datang, {role}!")
             self.login_view.ent_username.delete(0, tk.END)
             self.login_view.ent_password.delete(0, tk.END)

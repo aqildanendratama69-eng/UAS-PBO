@@ -39,11 +39,42 @@ class DashboardFrame(tk.Frame):
         super().__init__(parent)
         self.config(bg="#f4f6f9")
         
-        label_judul = tk.Label(self, text="Sistem Manajemen Mahasiswa (SIAKAD)", font=("Arial", 18, "bold"), bg="#f4f6f9", fg="#333")
-        label_judul.pack(pady=40)
+        # Header Dinamis
+        self.lbl_welcome = tk.Label(self, text="Selamat Datang di SIAKAD", font=("Arial", 22, "bold"), bg="#f4f6f9", fg="#003366")
+        self.lbl_welcome.pack(pady=(40, 10))
         
-        label_sub = tk.Label(self, text="Selamat Datang di Aplikasi Manajemen Data Mahasiswa\nGunakan Menu Bar di atas untuk menavigasi aplikasi.", font=("Arial", 12), bg="#f4f6f9", justify="center")
-        label_sub.pack(pady=10)
+        tk.Label(self, text="Ringkasan Data Akademik Saat Ini", font=("Arial", 12), bg="#f4f6f9", fg="#555").pack(pady=(0, 30))
+
+        # Container untuk Kartu Statistik
+        frame_cards = tk.Frame(self, bg="#f4f6f9")
+        frame_cards.pack(pady=20)
+        
+        # Kartu 1: Total Mahasiswa
+        self.card_mhs = tk.Frame(frame_cards, bg="#4CAF50", padx=30, pady=20, relief="flat")
+        self.card_mhs.grid(row=0, column=0, padx=15)
+        tk.Label(self.card_mhs, text="Mahasiswa Terdaftar", font=("Arial", 11, "bold"), bg="#4CAF50", fg="white").pack()
+        self.lbl_total_mhs = tk.Label(self.card_mhs, text="0", font=("Arial", 28, "bold"), bg="#4CAF50", fg="white")
+        self.lbl_total_mhs.pack(pady=(10, 0))
+
+        # Kartu 2: Total Mata Kuliah
+        self.card_mk = tk.Frame(frame_cards, bg="#2196F3", padx=30, pady=20, relief="flat")
+        self.card_mk.grid(row=0, column=1, padx=15)
+        tk.Label(self.card_mk, text="Mata Kuliah Tersedia", font=("Arial", 11, "bold"), bg="#2196F3", fg="white").pack()
+        self.lbl_total_mk = tk.Label(self.card_mk, text="0", font=("Arial", 28, "bold"), bg="#2196F3", fg="white")
+        self.lbl_total_mk.pack(pady=(10, 0))
+
+        # Kartu 3: Total KRS
+        self.card_krs = tk.Frame(frame_cards, bg="#FF9800", padx=30, pady=20, relief="flat")
+        self.card_krs.grid(row=0, column=2, padx=15)
+        tk.Label(self.card_krs, text="Transaksi KRS Aktif", font=("Arial", 11, "bold"), bg="#FF9800", fg="white").pack()
+        self.lbl_total_krs = tk.Label(self.card_krs, text="0", font=("Arial", 28, "bold"), bg="#FF9800", fg="white")
+        self.lbl_total_krs.pack(pady=(10, 0))
+        
+    def update_stats(self, role, total_mhs, total_mk, total_krs):
+        self.lbl_welcome.config(text=f"Selamat Datang, {role}!")
+        self.lbl_total_mhs.config(text=str(total_mhs))
+        self.lbl_total_mk.config(text=str(total_mk))
+        self.lbl_total_krs.config(text=str(total_krs))
 
 class FormMahasiswaFrame(tk.Frame):
     def __init__(self, parent):

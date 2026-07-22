@@ -136,6 +136,21 @@ class DatabaseModel:
                 return True, row[0]
             return False, None
 
+    def get_dashboard_stats(self):
+        """Mengambil total data untuk ditampilkan di Dashboard"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM mahasiswa")
+            total_mhs = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM mata_kuliah")
+            total_mk = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM krs")
+            total_krs = cursor.fetchone()[0]
+            
+            return total_mhs, total_mk, total_krs
+
     def insert_mata_kuliah_default(self):
         """Memasukkan data default mata kuliah agar tabel tidak kosong"""
         matkul_default = [
