@@ -222,6 +222,18 @@ class Controller:
         
         mk_kode = self.krs_view.tree_mk.item(selected[0])['values'][0]
         mk_nama = self.krs_view.tree_mk.item(selected[0])['values'][1]
+        mk_sks = int(self.krs_view.tree_mk.item(selected[0])['values'][2])
+        
+        # Validasi Batas Maksimal 24 SKS
+        current_sks_text = self.krs_view.lbl_sks.cget("text")
+        try:
+            current_sks = int(current_sks_text.replace("Total SKS: ", ""))
+        except ValueError:
+            current_sks = 0
+            
+        if current_sks + mk_sks > 24:
+            messagebox.showwarning("Batas SKS Terlampaui!", f"Mahasiswa tidak bisa mengambil lebih dari 24 SKS.\n\nSKS Saat Ini: {current_sks}\nSKS '{mk_nama}': {mk_sks}\nTotal: {current_sks + mk_sks} SKS")
+            return
         
         try:
             self.model.add_krs_item(nim, mk_kode)
