@@ -57,12 +57,13 @@ class MataKuliah:
 
 class KRSItem:
     """Model untuk satu item mata kuliah di KRS Mahasiswa"""
-    def __init__(self, id_krs, nim, kode_mk, nama_mk, sks):
+    def __init__(self, id_krs, nim, kode_mk, nama_mk, sks, nilai="-"):
         self.id_krs = id_krs
         self.nim = nim
         self.kode_mk = kode_mk
         self.nama_mk = nama_mk
         self.sks = sks
+        self.nilai = nilai
 
 # ==========================================
 # [Pertemuan 11: Integrasi OOP dan Basis Data Relasional (CRUD dengan SQLite)]
@@ -108,6 +109,10 @@ class DatabaseModel:
                     FOREIGN KEY(kode_mk) REFERENCES mata_kuliah(kode_mk) ON DELETE CASCADE
                 )
             """)
+            try:
+                cursor.execute("ALTER TABLE krs ADD COLUMN nilai TEXT DEFAULT '-'")
+            except sqlite3.OperationalError:
+                pass # Mengabaikan error jika kolom 'nilai' sudah ada
             # Tabel Users (Untuk Login Sistem)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS users (
@@ -254,7 +259,7 @@ class DatabaseModel:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT k.id, k.nim, m.kode_mk, m.nama_mk, m.sks 
+                SELECT k.id, k.nim, m.kode_mk, m.nama_mk, m.sks, k.nilai 
                 FROM krs k
                 JOIN mata_kuliah m ON k.kode_mk = m.kode_mk
                 WHERE k.nim = ?
@@ -277,4 +282,11 @@ class DatabaseModel:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM krs WHERE id=?", (id_krs,))
+            conn.commit()
+            
+    def update_nilai_krs(self, id_krs, nilai):
+        """Memperbarui nilai huruf mahasiswa di mata kuliah tertentu"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE krs SET nilai=? WHERE id=?", (nilai, id_krs))
             conn.commit()

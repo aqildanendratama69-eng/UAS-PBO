@@ -295,6 +295,68 @@ class FormKRSFrame(tk.Frame):
         self.ent_sks_mk.insert(0, sks)
 
 
+class FormNilaiFrame(tk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.config(bg="#f4f6f9")
+        
+        # ==================== HEADER PENCARIAN ====================
+        frame_top = tk.Frame(self, bg="#d9e1f2", pady=15, padx=20)
+        frame_top.pack(fill="x")
+        
+        tk.Label(frame_top, text="Input Nilai Semester", font=("Arial", 16, "bold"), bg="#d9e1f2", fg="#003366").pack(side="left")
+        
+        frame_cari = tk.Frame(frame_top, bg="#d9e1f2")
+        frame_cari.pack(side="right")
+        
+        tk.Label(frame_cari, text="NIM Mahasiswa:", bg="#d9e1f2", font=("Arial", 10, "bold")).pack(side="left", padx=5)
+        self.ent_nim_nilai = tk.Entry(frame_cari, width=15, font=("Arial", 10))
+        self.ent_nim_nilai.pack(side="left", padx=5)
+        
+        self.btn_cari_nilai = tk.Button(frame_cari, text="Cari KRS", bg="#003366", fg="white", cursor="hand2")
+        self.btn_cari_nilai.pack(side="left", padx=5)
+        
+        # ==================== INFO MAHASISWA ====================
+        frame_info = tk.Frame(self, bg="#f4f6f9", pady=10)
+        frame_info.pack(fill="x", padx=20)
+        self.lbl_info_mhs_nilai = tk.Label(frame_info, text="Silakan cari NIM mahasiswa...", font=("Arial", 11, "italic"), bg="#f4f6f9", fg="#555")
+        self.lbl_info_mhs_nilai.pack(anchor="w")
+
+        # ==================== TABEL NILAI ====================
+        frame_tabel = tk.Frame(self, bg="#f0f0f0")
+        frame_tabel.pack(fill="both", expand=True, padx=20, pady=5)
+        
+        self.tree_nilai = ttk.Treeview(frame_tabel, columns=("id", "kode", "nama", "sks", "nilai"), show="headings")
+        self.tree_nilai.tag_configure('oddrow', background="white")
+        self.tree_nilai.tag_configure('evenrow', background="#f4f6f9")
+        self.tree_nilai.heading("id", text="ID KRS")
+        self.tree_nilai.heading("kode", text="KODE")
+        self.tree_nilai.heading("nama", text="NAMA MATA KULIAH")
+        self.tree_nilai.heading("sks", text="SKS")
+        self.tree_nilai.heading("nilai", text="NILAI HURUF")
+        
+        self.tree_nilai.column("id", width=50, anchor="center")
+        self.tree_nilai.column("kode", width=80, anchor="center")
+        self.tree_nilai.column("nama", width=300, anchor="w")
+        self.tree_nilai.column("sks", width=50, anchor="center")
+        self.tree_nilai.column("nilai", width=100, anchor="center")
+        self.tree_nilai.pack(fill="both", expand=True)
+
+        # ==================== FORM INPUT BAWAH ====================
+        frame_bawah = tk.LabelFrame(self, text=" Input Nilai ", font=("Arial", 10, "bold"), bg="#f4f6f9", padx=10, pady=10)
+        frame_bawah.pack(fill="x", padx=20, pady=15)
+        
+        tk.Label(frame_bawah, text="Mata Kuliah Terpilih:", bg="#f4f6f9", font=("Arial", 10)).pack(side="left", padx=5)
+        self.lbl_matkul_terpilih = tk.Label(frame_bawah, text="-", bg="#f4f6f9", font=("Arial", 10, "bold"), fg="#003366")
+        self.lbl_matkul_terpilih.pack(side="left", padx=5)
+        
+        tk.Label(frame_bawah, text="Nilai:", bg="#f4f6f9", font=("Arial", 10)).pack(side="left", padx=(30, 5))
+        self.cmb_nilai = ttk.Combobox(frame_bawah, values=["A", "B", "C", "D", "E"], width=5, state="readonly")
+        self.cmb_nilai.pack(side="left", padx=5)
+        
+        self.btn_simpan_nilai = tk.Button(frame_bawah, text="Simpan Nilai", bg="#4CAF50", fg="white", font=("Arial", 10, "bold"), cursor="hand2")
+        self.btn_simpan_nilai.pack(side="left", padx=15)
+
 # ==========================================
 # [Pertemuan 6: Pewarisan Sifat (Inheritance)]
 # ==========================================
@@ -313,7 +375,7 @@ class MainView(tk.Tk):
         self.container.grid_columnconfigure(0, weight=1)
         
         self.frames = {}
-        for F in (LoginFrame, DashboardFrame, FormMahasiswaFrame, FormKRSFrame):
+        for F in (LoginFrame, DashboardFrame, FormMahasiswaFrame, FormKRSFrame, FormNilaiFrame):
             frame = F(self.container)
             self.frames[F.__name__] = frame
             frame.grid(row=0, column=0, sticky="nsew")
@@ -340,6 +402,7 @@ class MainView(tk.Tk):
         menu_nav.add_command(label="Dashboard", command=lambda: self.show_frame("DashboardFrame"))
         menu_nav.add_command(label="Kelola Data Mahasiswa", command=lambda: self.show_frame("FormMahasiswaFrame"))
         menu_nav.add_command(label="Pengisian KRS", command=lambda: self.show_frame("FormKRSFrame"))
+        menu_nav.add_command(label="Input Nilai Semester", command=lambda: self.show_frame("FormNilaiFrame"))
         self.menubar.add_cascade(label="Navigasi", menu=menu_nav)
 
         menu_bantuan = tk.Menu(self.menubar, tearoff=0)

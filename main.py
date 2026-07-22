@@ -13,6 +13,7 @@ class Controller:
         self.dashboard_view = self.view.frames["DashboardFrame"]
         self.form_view = self.view.frames["FormMahasiswaFrame"]
         self.krs_view = self.view.frames["FormKRSFrame"] # Bind frame KRS
+        self.nilai_view = self.view.frames["FormNilaiFrame"] # Bind frame Nilai
         
         self.view.trigger_logout = self.logout
 
@@ -43,6 +44,12 @@ class Controller:
         self.krs_view.ent_nim_krs.bind("<Return>", lambda e: self.cek_mahasiswa_krs())
         self.krs_view.tree_mk.bind("<Double-1>", self.tambah_krs) # Klik ganda untuk tambah ke KRS
         self.krs_view.btn_hapus_krs.config(command=self.hapus_krs)
+        
+        # Event Halaman Input Nilai
+        self.nilai_view.btn_cari_nilai.config(command=self.cek_mahasiswa_nilai)
+        self.nilai_view.ent_nim_nilai.bind("<Return>", lambda e: self.cek_mahasiswa_nilai())
+        self.nilai_view.tree_nilai.bind("<ButtonRelease-1>", self.pilih_baris_nilai)
+        self.nilai_view.btn_simpan_nilai.config(command=self.simpan_nilai)
         
         # Event CRUD Mata Kuliah
         self.krs_view.btn_tambah_mk.config(command=self.tambah_mk)
@@ -334,6 +341,70 @@ class Controller:
                 messagebox.showinfo("Sukses", "Mata kuliah berhasil dihapus!")
             except Exception as e:
                 messagebox.showerror("Error", f"Gagal menghapus MK: {e}")
+
+    # ==========================================
+    # LOGIKA INPUT NILAI SEMESTER
+    # ==========================================
+    def cek_mahasiswa_nilai(self):
+        nim = self.nilai_view.ent_nim_nilai.get().strip()
+        if not nim:
+            messagebox.showwarning("Peringatan", "Masukkan NIM Mahasiswa!")
+            return
+            
+        mhs = self.model.get_mahasiswa_by_nim(nim)
+        if not mhs:
+            messagebox.showerror("Error", "Mahasiswa tidak ditemukan di database.")
+            self.nilai_view.lbl_info_mhs_nilai.config(text="Mahasiswa tidak ditemukan.", fg="red")
+            for item in self.nilai_view.tree_nilai.get_children():
+                self.nilai_view.tree_nilai.delete(item)
+            return
+            
+        self.nilai_view.lbl_info_mhs_nilai.config(text=f"Mahasiswa Aktif: {mhs.get_nama()} ({mhs.get_jurusan()})", fg="#003366")
+        self.load_krs_nilai(nim)
+
+    def load_krs_nilai(self, nim):
+        for item in self.nilai_view.tree_nilai.get_children():
+            self.nilai_view.tree_nilai.delete(item)
+            
+        krs_list = self.model.get_krs_by_nim(nim)
+        for index, krs in enumerate(krs_list):
+            tag = "evenrow" if index % 2 == 0 else "oddrow"
+            self.nilai_view.tree_nilai.insert("", tk.END, values=(krs.id_krs, krs.kode_mk, krs.nama_mk, krs.sks, krs.nilai), tags=(tag,))
+
+    def pilih_baris_nilai(self, event):
+        selected = self.nilai_view.tree_nilai.selection()
+        if not selected:
+            return
+            
+        mk_nama = self.nilai_view.tree_nilai.item(selected[0])['values'][2]
+        mk_nilai = self.nilai_view.tree_nilai.item(selected[0])['values'][4]
+        
+        self.nilai_view.lbl_matkul_terpilih.config(text=mk_nama)
+        if mk_nilai != "-":
+            self.nilai_view.cmb_nilai.set(mk_nilai)
+        else:
+            self.nilai_view.cmb_nilai.set("")
+
+    def simpan_nilai(self):
+        selected = self.nilai_view.tree_nilai.selection()
+        if not selected:
+            messagebox.showwarning("Peringatan", "Pilih mata kuliah dari tabel terlebih dahulu!")
+            return
+            
+        id_krs = self.nilai_view.tree_nilai.item(selected[0])['values'][0]
+        nilai_baru = self.nilai_view.cmb_nilai.get()
+        
+        if not nilai_baru:
+            messagebox.showwarning("Peringatan", "Pilih nilai huruf yang akan disimpan!")
+            return
+            
+        try:
+            self.model.update_nilai_krs(id_krs, nilai_baru)
+            nim = self.nilai_view.ent_nim_nilai.get().strip()
+            self.load_krs_nilai(nim) # Refresh tabel
+            messagebox.showinfo("Sukses", "Nilai berhasil disimpan!")
+        except Exception as e:
+            messagebox.showerror("Error", f"Gagal menyimpan nilai: {e}")
 
     # ==========================================
     # LOGIKA AUTHENTIKASI & APLIKASI
