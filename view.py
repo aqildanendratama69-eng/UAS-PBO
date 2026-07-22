@@ -205,6 +205,8 @@ class FormKRSFrame(tk.Frame):
         self.btn_update_mk.grid(row=0, column=7, padx=5)
         self.btn_hapus_mk = tk.Button(frame_crud_mk, text="Hapus", bg="#CC0000", fg="white", cursor="hand2")
         self.btn_hapus_mk.grid(row=0, column=8, padx=5)
+        self.btn_clear_mk = tk.Button(frame_crud_mk, text="Batal", bg="#555555", fg="white", cursor="hand2")
+        self.btn_clear_mk.grid(row=0, column=9, padx=5)
 
         # Kanan: Tombol Hapus KRS
         self.btn_hapus_krs = tk.Button(frame_bawah, text="Hapus Matkul dari KRS ->", bg="#CC0000", fg="white", font=("Arial", 9, "bold"), cursor="hand2")

@@ -39,6 +39,7 @@ class Controller:
         self.krs_view.btn_tambah_mk.config(command=self.tambah_mk)
         self.krs_view.btn_update_mk.config(command=self.update_mk)
         self.krs_view.btn_hapus_mk.config(command=self.hapus_mk)
+        self.krs_view.btn_clear_mk.config(command=self.krs_view.clear_mk_form)
         self.krs_view.tree_mk.bind("<<TreeviewSelect>>", self.on_tree_mk_select)
 
     # ==========================================
