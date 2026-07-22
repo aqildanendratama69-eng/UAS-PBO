@@ -179,11 +179,52 @@ class FormKRSFrame(tk.Frame):
         self.tree_krs.column("sks", width=50, anchor="center")
         self.tree_krs.grid(row=1, column=1, sticky="nsew", padx=(10, 0))
 
-        # Tombol Hapus KRS
+        # ==================== TOMBOL DAN FORM BAWAH ====================
         frame_bawah = tk.Frame(self, bg="#f0f0f0")
         frame_bawah.pack(fill="x", padx=20, pady=5)
-        self.btn_hapus_krs = tk.Button(frame_bawah, text="Hapus Matkul dari KRS", bg="#CC0000", fg="white", font=("Arial", 9, "bold"), cursor="hand2")
-        self.btn_hapus_krs.pack(side="right")
+        
+        # Kiri: Form Kelola Matkul
+        frame_crud_mk = tk.LabelFrame(frame_bawah, text=" Kelola Mata Kuliah Tersedia ", font=("Arial", 9, "bold"), bg="#f0f0f0")
+        frame_crud_mk.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        
+        tk.Label(frame_crud_mk, text="Kode:", bg="#f0f0f0", font=("Arial", 9)).grid(row=0, column=0, padx=5, pady=5)
+        self.ent_kode_mk = tk.Entry(frame_crud_mk, width=8, font=("Arial", 9))
+        self.ent_kode_mk.grid(row=0, column=1, padx=5)
+        
+        tk.Label(frame_crud_mk, text="Nama MK:", bg="#f0f0f0", font=("Arial", 9)).grid(row=0, column=2, padx=5)
+        self.ent_nama_mk = tk.Entry(frame_crud_mk, width=20, font=("Arial", 9))
+        self.ent_nama_mk.grid(row=0, column=3, padx=5)
+        
+        tk.Label(frame_crud_mk, text="SKS:", bg="#f0f0f0", font=("Arial", 9)).grid(row=0, column=4, padx=5)
+        self.ent_sks_mk = tk.Entry(frame_crud_mk, width=5, font=("Arial", 9))
+        self.ent_sks_mk.grid(row=0, column=5, padx=5)
+        
+        self.btn_tambah_mk = tk.Button(frame_crud_mk, text="Tambah", bg="#003366", fg="white", cursor="hand2")
+        self.btn_tambah_mk.grid(row=0, column=6, padx=5)
+        self.btn_update_mk = tk.Button(frame_crud_mk, text="Update", bg="#CC8400", fg="white", cursor="hand2")
+        self.btn_update_mk.grid(row=0, column=7, padx=5)
+        self.btn_hapus_mk = tk.Button(frame_crud_mk, text="Hapus", bg="#CC0000", fg="white", cursor="hand2")
+        self.btn_hapus_mk.grid(row=0, column=8, padx=5)
+
+        # Kanan: Tombol Hapus KRS
+        self.btn_hapus_krs = tk.Button(frame_bawah, text="Hapus Matkul dari KRS ->", bg="#CC0000", fg="white", font=("Arial", 9, "bold"), cursor="hand2")
+        self.btn_hapus_krs.pack(side="right", pady=10)
+
+    def get_mk_data(self):
+        return self.ent_kode_mk.get().strip(), self.ent_nama_mk.get().strip(), self.ent_sks_mk.get().strip()
+
+    def clear_mk_form(self):
+        self.ent_kode_mk.config(state="normal")
+        self.ent_kode_mk.delete(0, tk.END)
+        self.ent_nama_mk.delete(0, tk.END)
+        self.ent_sks_mk.delete(0, tk.END)
+
+    def load_to_mk_form(self, kode, nama, sks):
+        self.clear_mk_form()
+        self.ent_kode_mk.insert(0, kode)
+        self.ent_kode_mk.config(state="readonly")
+        self.ent_nama_mk.insert(0, nama)
+        self.ent_sks_mk.insert(0, sks)
 
 
 # ==========================================

@@ -188,6 +188,25 @@ class DatabaseModel:
             rows = cursor.fetchall()
             return [MataKuliah(*row) for row in rows]
 
+    def insert_mata_kuliah(self, mk: MataKuliah):
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO mata_kuliah VALUES (?, ?, ?)", (mk.kode_mk, mk.nama_mk, mk.sks))
+            conn.commit()
+
+    def update_mata_kuliah(self, mk: MataKuliah):
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE mata_kuliah SET nama_mk=?, sks=? WHERE kode_mk=?", (mk.nama_mk, mk.sks, mk.kode_mk))
+            conn.commit()
+
+    def delete_mata_kuliah(self, kode_mk):
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA foreign_keys = ON") # Agar KRS terkait ikut terhapus
+            cursor.execute("DELETE FROM mata_kuliah WHERE kode_mk=?", (kode_mk,))
+            conn.commit()
+
     def get_krs_by_nim(self, nim):
         """Mengambil data KRS yang direlasikan dengan tabel mata kuliah"""
         with self.get_connection() as conn:

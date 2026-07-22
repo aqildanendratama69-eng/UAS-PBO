@@ -32,8 +32,14 @@ class Controller:
         # Event Halaman KRS
         self.krs_view.btn_cek_mhs.config(command=self.cek_mahasiswa_krs)
         self.krs_view.ent_nim_krs.bind("<Return>", lambda e: self.cek_mahasiswa_krs())
-        self.krs_view.tree_mk.bind("<Double-1>", self.tambah_krs) # Klik ganda untuk tambah
+        self.krs_view.tree_mk.bind("<Double-1>", self.tambah_krs) # Klik ganda untuk tambah ke KRS
         self.krs_view.btn_hapus_krs.config(command=self.hapus_krs)
+        
+        # Event CRUD Mata Kuliah
+        self.krs_view.btn_tambah_mk.config(command=self.tambah_mk)
+        self.krs_view.btn_update_mk.config(command=self.update_mk)
+        self.krs_view.btn_hapus_mk.config(command=self.hapus_mk)
+        self.krs_view.tree_mk.bind("<<TreeviewSelect>>", self.on_tree_mk_select)
 
     # ==========================================
     # LOGIKA HALAMAN MAHASISWA (CRUD)
@@ -230,6 +236,78 @@ class Controller:
                 self.load_krs_mahasiswa(nim) # Refresh
             except Exception as e:
                 messagebox.showerror("Error", f"Gagal menghapus KRS: {e}")
+
+    # ==========================================
+    # LOGIKA CRUD MATA KULIAH (Form Kiri)
+    # ==========================================
+    def on_tree_mk_select(self, event):
+        selected = self.krs_view.tree_mk.selection()
+        if selected:
+            data = self.krs_view.tree_mk.item(selected[0])['values']
+            self.krs_view.load_to_mk_form(data[0], data[1], data[2])
+
+    def tambah_mk(self):
+        kode, nama, sks = self.krs_view.get_mk_data()
+        if not all([kode, nama, sks]):
+            messagebox.showwarning("Peringatan", "Kode, Nama MK, dan SKS wajib diisi!")
+            return
+        try:
+            from model import MataKuliah
+            mk = MataKuliah(kode, nama, int(sks))
+            self.model.insert_mata_kuliah(mk)
+            self.load_mata_kuliah()
+            self.krs_view.clear_mk_form()
+            messagebox.showinfo("Sukses", "Mata kuliah baru berhasil ditambahkan!")
+        except sqlite3.IntegrityError:
+            messagebox.showerror("Gagal", f"Mata kuliah dengan kode {kode} sudah ada!")
+        except ValueError:
+            messagebox.showwarning("Peringatan", "SKS harus berupa angka!")
+        except Exception as e:
+            messagebox.showerror("Error", f"Gagal menambah MK: {e}")
+
+    def update_mk(self):
+        kode, nama, sks = self.krs_view.get_mk_data()
+        if not all([kode, nama, sks]):
+            messagebox.showwarning("Peringatan", "Pilih mata kuliah lalu isi datanya dengan lengkap!")
+            return
+        if self.krs_view.ent_kode_mk["state"] != "readonly":
+            messagebox.showwarning("Peringatan", "Pilih mata kuliah dari tabel terlebih dahulu!")
+            return
+        try:
+            from model import MataKuliah
+            mk = MataKuliah(kode, nama, int(sks))
+            self.model.update_mata_kuliah(mk)
+            self.load_mata_kuliah()
+            self.krs_view.clear_mk_form()
+            # Refresh tabel KRS jika matkul yg diupdate ada di KRS
+            nim = self.krs_view.ent_nim_krs.get().strip()
+            if nim and "Aktif:" in self.krs_view.lbl_info_mhs.cget("text"):
+                self.load_krs_mahasiswa(nim)
+            messagebox.showinfo("Sukses", "Mata kuliah berhasil diperbarui!")
+        except ValueError:
+            messagebox.showwarning("Peringatan", "SKS harus berupa angka!")
+        except Exception as e:
+            messagebox.showerror("Error", f"Gagal mengupdate MK: {e}")
+
+    def hapus_mk(self):
+        selected = self.krs_view.tree_mk.selection()
+        if not selected:
+            messagebox.showwarning("Peringatan", "Pilih mata kuliah yang ingin dihapus dari tabel!")
+            return
+        kode = self.krs_view.tree_mk.item(selected[0])['values'][0]
+        nama = self.krs_view.tree_mk.item(selected[0])['values'][1]
+        if messagebox.askyesno("Konfirmasi Hapus", f"Yakin ingin menghapus mata kuliah '{nama}'?\n\nPERINGATAN: Mahasiswa yang sudah mengambil matkul ini di KRS-nya juga akan kehilangan data KRS tersebut!"):
+            try:
+                self.model.delete_mata_kuliah(kode)
+                self.load_mata_kuliah()
+                self.krs_view.clear_mk_form()
+                # Refresh tabel KRS
+                nim = self.krs_view.ent_nim_krs.get().strip()
+                if nim and "Aktif:" in self.krs_view.lbl_info_mhs.cget("text"):
+                    self.load_krs_mahasiswa(nim)
+                messagebox.showinfo("Sukses", "Mata kuliah berhasil dihapus!")
+            except Exception as e:
+                messagebox.showerror("Error", f"Gagal menghapus MK: {e}")
 
 if __name__ == "__main__":
     db = DatabaseModel()
