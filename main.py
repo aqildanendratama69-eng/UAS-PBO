@@ -1,29 +1,25 @@
-# main.py
 import tkinter as tk
 from tkinter import messagebox
 import sqlite3
 from model import DatabaseModel, Mahasiswa
 from view import MainView
-# ==========================================
-# [Pertemuan 5: Relasi Antar Objek]
-# Controller memiliki relasi 'Association/Composition' dengan Model dan View
-# ==========================================
+
 class Controller:
-    """Controller menghubungkan Model dan View (MVC Pattern)"""
     def __init__(self, model: DatabaseModel, view: MainView):
         self.model = model
         self.view = view
         
-        # Mengakses frame form melalui dictionary frames karena menggunakan Frame Switching
         self.form_view = self.view.frames["FormMahasiswaFrame"]
+        self.krs_view = self.view.frames["FormKRSFrame"] # Bind frame KRS
 
         self.bind_events()
         self.load_data()
+        self.load_mata_kuliah() # Muat tabel kiri KRS
         
-        # Tampilkan dashboard pertama kali
         self.view.show_frame("DashboardFrame")
+
     def bind_events(self):
-        """Menghubungkan tombol dengan fungsi controller"""
+        # Event Halaman Mahasiswa
         self.form_view.btn_simpan.config(command=self.create_data)
         self.form_view.btn_update.config(command=self.update_data)
         self.form_view.btn_hapus.config(command=self.delete_data)
@@ -31,10 +27,18 @@ class Controller:
         self.form_view.btn_cari.config(command=self.search_data)
         self.form_view.btn_tampil_semua.config(command=self.load_data)
         self.form_view.tree.bind("<Double-1>", self.on_tree_select)
-        # Bind Enter key pada search box
         self.form_view.ent_search.bind("<Return>", lambda e: self.search_data())
+
+        # Event Halaman KRS
+        self.krs_view.btn_cek_mhs.config(command=self.cek_mahasiswa_krs)
+        self.krs_view.ent_nim_krs.bind("<Return>", lambda e: self.cek_mahasiswa_krs())
+        self.krs_view.tree_mk.bind("<Double-1>", self.tambah_krs) # Klik ganda untuk tambah
+        self.krs_view.btn_hapus_krs.config(command=self.hapus_krs)
+
+    # ==========================================
+    # LOGIKA HALAMAN MAHASISWA (CRUD)
+    # ==========================================
     def load_data(self):
-        """Read: Memperbarui Treeview dari Database"""
         for item in self.form_view.tree.get_children():
             self.form_view.tree.delete(item)
         try:
@@ -45,33 +49,30 @@ class Controller:
                 ))
         except Exception as e:
             messagebox.showerror("Error", f"Gagal memuat data database: {e}")
+
     def search_data(self):
-        """Cari data mahasiswa berdasarkan keyword"""
         keyword = self.form_view.get_search_keyword()
         if not keyword:
             messagebox.showwarning("Peringatan", "Masukkan kata kunci pencarian!")
             return
-        # Bersihkan tabel
         for item in self.form_view.tree.get_children():
             self.form_view.tree.delete(item)
         try:
             results = self.model.search_mahasiswa(keyword)
             if results:
                 for mhs in results:
-                    self.form_view.tree.insert("", tk.END, values=(
-                        mhs.get_nim(), mhs.get_nama(), mhs.get_jurusan(), mhs.get_tahun()
-                    ))
+                    self.form_view.tree.insert("", tk.END, values=(mhs.get_nim(), mhs.get_nama(), mhs.get_jurusan(), mhs.get_tahun()))
             else:
                 messagebox.showinfo("Info", f"Data dengan kata kunci '{keyword}' tidak ditemukan.")
         except Exception as e:
             messagebox.showerror("Error", f"Gagal mencari data: {e}")
+
     def validate_input(self, nim, nama, jurusan, tahun):
-        """Validasi input form"""
         if not all([nim, nama, jurusan]):
             raise ValueError("NIM, Nama, dan Jurusan wajib diisi!")
         return tahun if tahun else None
+
     def create_data(self):
-        """Create Data dengan Try-Except-Finally"""
         nim, nama, jurusan, tahun = self.form_view.get_form_data()
         try:
             self.validate_input(nim, nama, jurusan, tahun)
@@ -87,9 +88,9 @@ class Controller:
         except Exception as e:
             messagebox.showerror("Error Terjadi", f"Kesalahan sistem: {e}")
         finally:
-            pass  # Pastikan memori/resources siap untuk aksi berikutnya
+            pass
+
     def update_data(self):
-        """Update Data dengan Kunci Primary Key"""
         nim, nama, jurusan, tahun = self.form_view.get_form_data()
         try:
             if self.form_view.ent_nim["state"] != "readonly":
@@ -100,38 +101,138 @@ class Controller:
             messagebox.showinfo("Sukses", "Data mahasiswa berhasil diperbarui!")
             self.form_view.clear_form()
             self.load_data()
+            
+            # Jika mahasiswa yang diupdate sedang dibuka di form KRS, refresh namanya
+            nim_krs_aktif = self.krs_view.ent_nim_krs.get().strip()
+            if nim_krs_aktif == nim:
+                self.cek_mahasiswa_krs()
+
         except ValueError as ve:
             messagebox.showwarning("Peringatan", str(ve))
         except Exception as e:
             messagebox.showerror("Error", f"Gagal memperbarui data: {e}")
         finally:
-            pass # Memastikan resource aman setelah update
+            pass
+
     def delete_data(self):
-        """Delete Data dengan Dialog Konfirmasi"""
         selected = self.form_view.tree.selection()
         if not selected:
             messagebox.showwarning("Peringatan", "Pilih data pada tabel yang ingin dihapus!")
             return
         nim = self.form_view.tree.item(selected[0])['values'][0]
-        if messagebox.askyesno("Konfirmasi Hapus", f"Apakah Anda yakin ingin menghapus data dengan NIM {nim}?"):
+        if messagebox.askyesno("Konfirmasi Hapus", f"Apakah Anda yakin ingin menghapus data dengan NIM {nim}? (KRS terkait juga akan terhapus)"):
             try:
                 self.model.delete_mahasiswa(nim)
                 messagebox.showinfo("Sukses", "Data berhasil dihapus!")
                 self.form_view.clear_form()
                 self.load_data()
+                
+                # Bersihkan tampilan form KRS jika NIM yang dihapus sedang dibuka
+                if self.krs_view.ent_nim_krs.get().strip() == nim:
+                    self.krs_view.ent_nim_krs.delete(0, tk.END)
+                    self.krs_view.lbl_info_mhs.config(text="Pilih mahasiswa untuk mulai mengisi KRS.")
+                    self.krs_view.lbl_sks.config(text="Total SKS: 0")
+                    for item in self.krs_view.tree_krs.get_children():
+                        self.krs_view.tree_krs.delete(item)
             except Exception as e:
                 messagebox.showerror("Error", f"Gagal menghapus data: {e}")
             finally:
-                pass # Memastikan resource aman setelah delete
+                pass
+
     def on_tree_select(self, event):
-        """Memuat data dari Treeview ke form dan mengunci Primary Key"""
         selected = self.form_view.tree.selection()
         if selected:
             data = self.form_view.tree.item(selected[0])['values']
             self.form_view.load_to_form(data[0], data[1], data[2], data[3])
+
+    # ==========================================
+    # LOGIKA HALAMAN KRS
+    # ==========================================
+    def load_mata_kuliah(self):
+        """Memuat daftar semua mata kuliah ke tabel kiri Form KRS"""
+        for item in self.krs_view.tree_mk.get_children():
+            self.krs_view.tree_mk.delete(item)
+        
+        matkul_list = self.model.get_all_mata_kuliah()
+        for mk in matkul_list:
+            self.krs_view.tree_mk.insert("", tk.END, values=(mk.kode_mk, mk.nama_mk, mk.sks))
+
+    def cek_mahasiswa_krs(self):
+        """Mengecek apakah NIM valid, jika valid muat data KRS-nya"""
+        nim = self.krs_view.ent_nim_krs.get().strip()
+        if not nim:
+            messagebox.showwarning("Peringatan", "Masukkan NIM terlebih dahulu!")
+            return
+            
+        mhs = self.model.get_mahasiswa_by_nim(nim)
+        if not mhs:
+            messagebox.showerror("Gagal", f"Mahasiswa dengan NIM {nim} tidak ditemukan di database.")
+            self.krs_view.lbl_info_mhs.config(text="Mahasiswa tidak ditemukan.")
+            self.krs_view.lbl_sks.config(text="Total SKS: 0")
+            for item in self.krs_view.tree_krs.get_children():
+                self.krs_view.tree_krs.delete(item)
+            return
+            
+        self.krs_view.lbl_info_mhs.config(text=f"Aktif: {mhs.get_nama()} ({mhs.get_jurusan()})")
+        self.load_krs_mahasiswa(nim)
+
+    def load_krs_mahasiswa(self, nim):
+        """Memuat daftar KRS mahasiswa ke tabel kanan dan menghitung SKS"""
+        for item in self.krs_view.tree_krs.get_children():
+            self.krs_view.tree_krs.delete(item)
+            
+        krs_list = self.model.get_krs_by_nim(nim)
+        total_sks = 0
+        
+        for krs in krs_list:
+            self.krs_view.tree_krs.insert("", tk.END, values=(krs.id_krs, krs.kode_mk, krs.nama_mk, krs.sks))
+            total_sks += krs.sks
+            
+        self.krs_view.lbl_sks.config(text=f"Total SKS: {total_sks}")
+
+    def tambah_krs(self, event):
+        """Menambahkan MK dari tabel kiri ke tabel KRS Kanan (Double-click event)"""
+        nim = self.krs_view.ent_nim_krs.get().strip()
+        if not nim or "Aktif:" not in self.krs_view.lbl_info_mhs.cget("text"):
+            messagebox.showwarning("Peringatan", "Cari dan aktifkan Mahasiswa terlebih dahulu sebelum mengisi KRS!")
+            return
+            
+        selected = self.krs_view.tree_mk.selection()
+        if not selected: return
+        
+        mk_kode = self.krs_view.tree_mk.item(selected[0])['values'][0]
+        mk_nama = self.krs_view.tree_mk.item(selected[0])['values'][1]
+        
+        try:
+            self.model.add_krs_item(nim, mk_kode)
+            self.load_krs_mahasiswa(nim) # Refresh tabel KRS kanan
+        except sqlite3.IntegrityError:
+            messagebox.showinfo("Info", f"Mata kuliah '{mk_nama}' sudah ada di KRS!")
+        except Exception as e:
+            messagebox.showerror("Error", f"Gagal menambahkan KRS: {e}")
+
+    def hapus_krs(self):
+        """Menghapus MK dari KRS (Tombol Hapus)"""
+        nim = self.krs_view.ent_nim_krs.get().strip()
+        if not nim: return
+        
+        selected = self.krs_view.tree_krs.selection()
+        if not selected:
+            messagebox.showwarning("Peringatan", "Pilih mata kuliah di tabel KRS (kanan) yang ingin dihapus!")
+            return
+            
+        krs_id = self.krs_view.tree_krs.item(selected[0])['values'][0]
+        mk_nama = self.krs_view.tree_krs.item(selected[0])['values'][2]
+        
+        if messagebox.askyesno("Konfirmasi Batal KRS", f"Yakin ingin membatalkan mata kuliah '{mk_nama}'?"):
+            try:
+                self.model.delete_krs_item(krs_id)
+                self.load_krs_mahasiswa(nim) # Refresh
+            except Exception as e:
+                messagebox.showerror("Error", f"Gagal menghapus KRS: {e}")
+
 if __name__ == "__main__":
     db = DatabaseModel()
     app = MainView()
     controller = Controller(db, app)
-    app.mainloop()
     app.mainloop()
